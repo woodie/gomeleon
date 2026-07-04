@@ -1,5 +1,12 @@
 # ginkgo-fd
 
+[![go.mod version](https://img.shields.io/github/go-mod/go-version/woodie/ginkgo-fd)](https://github.com/woodie/ginkgo-fd)
+[![CI](https://github.com/woodie/ginkgo-fd/actions/workflows/go.yml/badge.svg)](https://github.com/woodie/ginkgo-fd/actions/workflows/go.yml)
+[![Release](https://img.shields.io/github/v/release/woodie/ginkgo-fd.svg)](https://github.com/woodie/ginkgo-fd/releases/latest)
+[![License](https://img.shields.io/github/license/woodie/ginkgo-fd.svg)](LICENSE)
+
+![Example Screenshot](docs/example.png)
+
 The `ginko-fd` command uses [Ginkgo](https://github.com/onsi/ginkgo) under the hood to emulate the style of [RSpec](https://github.com/rspec/rspec) "format documentation" output.
 
 ## Installation
@@ -51,14 +58,20 @@ GinkgoFd
       indents leaf nodes
       deduplicates shared hierarchy
       prints the summary
+      appends xcbeautify's 'Test Succeeded' / 'Tests Passed' footer
+      appends Ginkgo's own 'Ran X of Y Specs' / 'SUCCESS!' footer
     with a failing report
       annotates the failed spec
       prints the failures section
       prints the failed examples list
       prints the summary with failure count
+      switches the xcbeautify-style footer to 'Test Failed'
+      switches the Ginkgo-style footer to 'FAIL!' and counts the failure
     with a skipping report
       annotates the skipped spec
       prints the summary with skipped count
+      folds the skip into the xcbeautify-style footer's skipped count, still 'Test Succeeded'
+      excludes the skipped spec from 'Ran X of Y' in the Ginkgo-style footer
     when the report file is missing
       returns an error
   color output
@@ -78,5 +91,11 @@ GinkgoFd
       uses a path outside the project directory
 
 Finished in 0.0086 seconds
-21 examples, 0 failures
+27 examples, 0 failures
+
+Test Succeeded
+Tests Passed: 0 failed, 0 skipped, 27 total (0.0086 seconds)
+
+Ran 27 of 27 Specs in 0.0086 seconds
+SUCCESS! -- 27 Passed | 0 Failed | 0 Pending | 0 Skipped
 ```

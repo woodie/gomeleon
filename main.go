@@ -55,12 +55,16 @@ type Location struct {
 	LineNumber int    `json:"LineNumber"`
 }
 
-func formatDuration(ns float64) string {
+func formatSeconds(ns float64) string {
 	d := time.Duration(ns)
 	if d < time.Second {
-		return fmt.Sprintf("%.4f seconds", d.Seconds())
+		return fmt.Sprintf("%.4f", d.Seconds())
 	}
-	return fmt.Sprintf("%.2f seconds", d.Seconds())
+	return fmt.Sprintf("%.2f", d.Seconds())
+}
+
+func formatDuration(ns float64) string {
+	return formatSeconds(ns) + " seconds"
 }
 
 func run(reportPath string, out io.Writer) error {
@@ -183,6 +187,44 @@ func run(reportPath string, out io.Writer) error {
 			fmt.Fprintf(out, "\n  # %s\n", strings.Join(f.full, " "))
 		}
 	}
+
+	// Real xcbeautify's own run-results footer, lifted verbatim from a
+	// genuine `xcodebuild test` run: a green/red headline, then a
+	// "Tests Passed:" line that -- despite the name -- always lists all
+	// three counts, not just passes. xcbeautify/XCTest has no separate
+	// "pending" bucket the way Ginkgo does, so Pending and Skipped specs
+	// are folded together into its one "skipped" count here.
+	verdict := "Test Succeeded"
+	verdictColor := green
+	if totalFailed > 0 {
+		verdict = "Test Failed"
+		verdictColor = red
+	}
+	fmt.Fprintln(out)
+	fmt.Fprintln(out, colorize(verdictColor, verdict))
+	testsPassedLine := fmt.Sprintf(
+		"Tests Passed: %d failed, %d skipped, %d total (%s seconds)",
+		totalFailed, totalPending+totalSkipped, totalSpecs, formatSeconds(totalRunTime),
+	)
+	fmt.Fprintln(out, colorize(verdictColor, testsPassedLine))
+
+	// Real Ginkgo's own default-reporter footer, lifted verbatim from a
+	// genuine `ginkgo` run, for good measure: "Ran X of Y Specs in N
+	// seconds" -- X excludes specs that didn't actually execute (Pending
+	// and Skipped) -- then a "SUCCESS!"/"FAIL!" headline with the full
+	// Passed/Failed/Pending/Skipped breakdown.
+	ranSpecs := totalSpecs - totalPending - totalSkipped
+	passedSpecs := ranSpecs - totalFailed
+	ginkgoVerdict := "SUCCESS!"
+	if totalFailed > 0 {
+		ginkgoVerdict = "FAIL!"
+	}
+	fmt.Fprintln(out)
+	fmt.Fprintf(out, "Ran %d of %d Specs in %s\n", ranSpecs, totalSpecs, formatDuration(totalRunTime))
+	fmt.Fprintln(out, colorize(verdictColor, fmt.Sprintf(
+		"%s -- %d Passed | %d Failed | %d Pending | %d Skipped",
+		ginkgoVerdict, passedSpecs, totalFailed, totalPending, totalSkipped,
+	)))
 
 	return nil
 }

@@ -96,6 +96,16 @@ var _ = Describe("GinkgoFd", func() {
 			It("prints the summary", func() {
 				Expect(output).To(ContainSubstring("3 examples, 0 failures"))
 			})
+
+			It("appends xcbeautify's 'Test Succeeded' / 'Tests Passed' footer", func() {
+				Expect(output).To(ContainSubstring("Test Succeeded"))
+				Expect(output).To(ContainSubstring("Tests Passed: 0 failed, 0 skipped, 3 total (0.0150 seconds)"))
+			})
+
+			It("appends Ginkgo's own 'Ran X of Y Specs' / 'SUCCESS!' footer", func() {
+				Expect(output).To(ContainSubstring("Ran 3 of 3 Specs in 0.0150 seconds"))
+				Expect(output).To(ContainSubstring("SUCCESS! -- 3 Passed | 0 Failed | 0 Pending | 0 Skipped"))
+			})
 		})
 
 		Context("with a failing report", func() {
@@ -118,6 +128,16 @@ var _ = Describe("GinkgoFd", func() {
 			It("prints the summary with failure count", func() {
 				Expect(output).To(ContainSubstring("1 examples, 1 failure"))
 			})
+
+			It("switches the xcbeautify-style footer to 'Test Failed'", func() {
+				Expect(output).To(ContainSubstring("Test Failed"))
+				Expect(output).To(ContainSubstring("Tests Passed: 1 failed, 0 skipped, 1 total (0.0150 seconds)"))
+			})
+
+			It("switches the Ginkgo-style footer to 'FAIL!' and counts the failure", func() {
+				Expect(output).To(ContainSubstring("Ran 1 of 1 Specs in 0.0150 seconds"))
+				Expect(output).To(ContainSubstring("FAIL! -- 0 Passed | 1 Failed | 0 Pending | 0 Skipped"))
+			})
 		})
 
 		Context("with a skipping report", func() {
@@ -129,6 +149,16 @@ var _ = Describe("GinkgoFd", func() {
 
 			It("prints the summary with skipped count", func() {
 				Expect(output).To(ContainSubstring("1 examples, 0 failures, 1 skipped"))
+			})
+
+			It("folds the skip into the xcbeautify-style footer's skipped count", func() {
+				Expect(output).To(ContainSubstring("Test Succeeded"))
+				Expect(output).To(ContainSubstring("Tests Passed: 0 failed, 1 skipped, 1 total (0.0150 seconds)"))
+			})
+
+			It("excludes the skipped spec from 'Ran X of Y' in the Ginkgo-style footer", func() {
+				Expect(output).To(ContainSubstring("Ran 0 of 1 Specs in 0.0150 seconds"))
+				Expect(output).To(ContainSubstring("SUCCESS! -- 0 Passed | 0 Failed | 0 Pending | 1 Skipped"))
 			})
 		})
 
