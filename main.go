@@ -85,8 +85,24 @@ func run(reportPath string, out io.Writer) error {
 	var totalRunTime float64
 	var failures []failureEntry
 
+	// Sticky-error writers: once a write to out fails, subsequent calls are
+	// no-ops and the first error is returned at the end of run().
+	var writeErr error
+	fprintf := func(format string, a ...any) {
+		if writeErr != nil {
+			return
+		}
+		_, writeErr = fmt.Fprintf(out, format, a...)
+	}
+	fprintln := func(a ...any) {
+		if writeErr != nil {
+			return
+		}
+		_, writeErr = fmt.Fprintln(out, a...)
+	}
+
 	for _, report := range reports {
-		fmt.Fprintln(out, report.SuiteName)
+		fprintln(report.SuiteName)
 		totalRunTime += report.RunTime
 
 		var prevHierarchy []string
@@ -114,7 +130,7 @@ func run(reportPath string, out io.Writer) error {
 			}
 
 			for i := divergeAt; i < len(hierarchy); i++ {
-				fmt.Fprintf(out, "%s%s\n", strings.Repeat("  ", i), hierarchy[i])
+				fprintf("%s%s\n", strings.Repeat("  ", i), hierarchy[i])
 			}
 
 			depth := len(hierarchy)
@@ -140,26 +156,26 @@ func run(reportPath string, out io.Writer) error {
 				label = colorize(green, label)
 			}
 
-			fmt.Fprintf(out, "%s%s\n", indent, label)
+			fprintf("%s%s\n", indent, label)
 			prevHierarchy = hierarchy
 		}
 
-		fmt.Fprintln(out)
+		fprintln()
 	}
 
 	if len(failures) > 0 {
-		fmt.Fprintln(out, "Failures:")
+		fprintln("Failures:")
 		for _, f := range failures {
-			fmt.Fprintf(out, "\n  %d) %s\n", f.n, strings.Join(f.full, " "))
+			fprintf("\n  %d) %s\n", f.n, strings.Join(f.full, " "))
 			for _, line := range strings.Split(strings.TrimSpace(f.message), "\n") {
-				fmt.Fprintf(out, "     %s\n", line)
+				fprintf("     %s\n", line)
 			}
-			fmt.Fprintf(out, "     # %s\n", f.location)
+			fprintf("     # %s\n", f.location)
 		}
-		fmt.Fprintln(out)
+		fprintln()
 	}
 
-	fmt.Fprintf(out, "Finished in %s\n", formatDuration(totalRunTime))
+	fprintf("Finished in %s\n", formatDuration(totalRunTime))
 
 	parts := []string{fmt.Sprintf("%d examples", totalSpecs)}
 	if totalFailed > 0 {
@@ -179,12 +195,12 @@ func run(reportPath string, out io.Writer) error {
 	} else {
 		summary = colorize(green, summary)
 	}
-	fmt.Fprintln(out, summary)
+	fprintln(summary)
 
 	if len(failures) > 0 {
-		fmt.Fprintln(out, "\nFailed examples:")
+		fprintln("\nFailed examples:")
 		for _, f := range failures {
-			fmt.Fprintf(out, "\n  # %s\n", strings.Join(f.full, " "))
+			fprintf("\n  # %s\n", strings.Join(f.full, " "))
 		}
 	}
 
@@ -200,13 +216,13 @@ func run(reportPath string, out io.Writer) error {
 		verdict = "Test Failed"
 		verdictColor = red
 	}
-	fmt.Fprintln(out)
-	fmt.Fprintln(out, colorize(verdictColor, verdict))
+	fprintln()
+	fprintln(colorize(verdictColor, verdict))
 	testsPassedLine := fmt.Sprintf(
 		"Tests Passed: %d failed, %d skipped, %d total (%s seconds)",
 		totalFailed, totalPending+totalSkipped, totalSpecs, formatSeconds(totalRunTime),
 	)
-	fmt.Fprintln(out, colorize(verdictColor, testsPassedLine))
+	fprintln(colorize(verdictColor, testsPassedLine))
 
 	// Real Ginkgo's own default-reporter footer, lifted verbatim from a
 	// genuine `ginkgo` run, for good measure: "Ran X of Y Specs in N
@@ -219,14 +235,14 @@ func run(reportPath string, out io.Writer) error {
 	if totalFailed > 0 {
 		ginkgoVerdict = "FAIL!"
 	}
-	fmt.Fprintln(out)
-	fmt.Fprintf(out, "Ran %d of %d Specs in %s\n", ranSpecs, totalSpecs, formatDuration(totalRunTime))
-	fmt.Fprintln(out, colorize(verdictColor, fmt.Sprintf(
+	fprintln()
+	fprintf("Ran %d of %d Specs in %s\n", ranSpecs, totalSpecs, formatDuration(totalRunTime))
+	fprintln(colorize(verdictColor, fmt.Sprintf(
 		"%s -- %d Passed | %d Failed | %d Pending | %d Skipped",
 		ginkgoVerdict, passedSpecs, totalFailed, totalPending, totalSkipped,
 	)))
 
-	return nil
+	return writeErr
 }
 
 type failureEntry struct {
@@ -243,7 +259,11 @@ func ginkgoReportPath() string {
 func runGinkgo(args []string) int {
 	reportFile := "ginkgo-fd-report.json"
 	reportPath := ginkgoReportPath()
-	defer os.Remove(reportPath)
+	defer func() {
+		if err := os.Remove(reportPath); err != nil && !os.IsNotExist(err) {
+			fmt.Fprintf(os.Stderr, "ginkgo-fd: cleanup: %v\n", err)
+		}
+	}()
 
 	ginkgoArgs := append([]string{"--json-report=" + reportFile}, args...)
 	cmd := exec.Command("ginkgo", ginkgoArgs...)
@@ -252,13 +272,22 @@ func runGinkgo(args []string) int {
 	cmd.Stdin = os.Stdin
 
 	err := cmd.Run()
-	os.Rename(reportFile, reportPath)
+	if renameErr := os.Rename(reportFile, reportPath); renameErr != nil {
+		fmt.Fprintf(os.Stderr, "ginkgo-fd: %v\n", renameErr)
+		if err == nil {
+			return 1
+		}
+		// cmd already failed; report that failure below rather than masking
+		// it with the rename error.
+	}
 
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			if _, statErr := os.Stat(reportPath); statErr == nil {
-				fmt.Fprintln(os.Stdout)
-				run(reportPath, os.Stdout)
+				_, _ = fmt.Fprintln(os.Stdout)
+				if runErr := run(reportPath, os.Stdout); runErr != nil {
+					fmt.Fprintf(os.Stderr, "ginkgo-fd: %v\n", runErr)
+				}
 			}
 			return exitErr.ExitCode()
 		}
@@ -266,7 +295,7 @@ func runGinkgo(args []string) int {
 		return 1
 	}
 
-	fmt.Fprintln(os.Stdout)
+	_, _ = fmt.Fprintln(os.Stdout)
 	if err := run(reportPath, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "ginkgo-fd: %v\n", err)
 		return 1

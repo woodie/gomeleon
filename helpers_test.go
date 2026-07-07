@@ -11,7 +11,13 @@ func writeTempReport(content string) string {
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
-	f.WriteString(content)
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			panic(closeErr)
+		}
+	}()
+	if _, err := f.WriteString(content); err != nil {
+		panic(err)
+	}
 	return f.Name()
 }
