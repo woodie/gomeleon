@@ -85,8 +85,7 @@ func run(reportPath string, out io.Writer) error {
 	var totalRunTime float64
 	var failures []failureEntry
 
-	// Sticky-error writers: once a write to out fails, subsequent calls are
-	// no-ops and the first error is returned at the end of run().
+	// Sticky-error: after the first write failure, fprintf/fprintln become no-ops; that error is returned at the end.
 	var writeErr error
 	fprintf := func(format string, a ...any) {
 		if writeErr != nil {
@@ -204,12 +203,7 @@ func run(reportPath string, out io.Writer) error {
 		}
 	}
 
-	// Real xcbeautify's own run-results footer, lifted verbatim from a
-	// genuine `xcodebuild test` run: a green/red headline, then a
-	// "Tests Passed:" line that -- despite the name -- always lists all
-	// three counts, not just passes. xcbeautify/XCTest has no separate
-	// "pending" bucket the way Ginkgo does, so Pending and Skipped specs
-	// are folded together into its one "skipped" count here.
+	// Mirrors xcbeautify's real "Test Succeeded"/"Tests Passed" footer verbatim, folding Pending into its one skipped count.
 	verdict := "Test Succeeded"
 	verdictColor := green
 	if totalFailed > 0 {
@@ -224,11 +218,7 @@ func run(reportPath string, out io.Writer) error {
 	)
 	fprintln(colorize(verdictColor, testsPassedLine))
 
-	// Real Ginkgo's own default-reporter footer, lifted verbatim from a
-	// genuine `ginkgo` run, for good measure: "Ran X of Y Specs in N
-	// seconds" -- X excludes specs that didn't actually execute (Pending
-	// and Skipped) -- then a "SUCCESS!"/"FAIL!" headline with the full
-	// Passed/Failed/Pending/Skipped breakdown.
+	// Mirrors Ginkgo's own "Ran X of Y Specs" footer verbatim; X excludes Pending/Skipped specs.
 	ranSpecs := totalSpecs - totalPending - totalSkipped
 	passedSpecs := ranSpecs - totalFailed
 	ginkgoVerdict := "SUCCESS!"
@@ -277,8 +267,7 @@ func runGinkgo(args []string) int {
 		if err == nil {
 			return 1
 		}
-		// cmd already failed; report that failure below rather than masking
-		// it with the rename error.
+		// cmd already failed; that failure takes precedence over this rename error below.
 	}
 
 	if err != nil {
