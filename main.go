@@ -243,15 +243,15 @@ type failureEntry struct {
 }
 
 func ginkgoReportPath() string {
-	return filepath.Join(os.TempDir(), "ginkgo-fd-report.json")
+	return filepath.Join(os.TempDir(), "gomeleon-report.json")
 }
 
 func runGinkgo(args []string) int {
-	reportFile := "ginkgo-fd-report.json"
+	reportFile := "gomeleon-report.json"
 	reportPath := ginkgoReportPath()
 	defer func() {
 		if err := os.Remove(reportPath); err != nil && !os.IsNotExist(err) {
-			fmt.Fprintf(os.Stderr, "ginkgo-fd: cleanup: %v\n", err)
+			fmt.Fprintf(os.Stderr, "gomeleon: cleanup: %v\n", err)
 		}
 	}()
 
@@ -263,7 +263,7 @@ func runGinkgo(args []string) int {
 
 	err := cmd.Run()
 	if renameErr := os.Rename(reportFile, reportPath); renameErr != nil {
-		fmt.Fprintf(os.Stderr, "ginkgo-fd: %v\n", renameErr)
+		fmt.Fprintf(os.Stderr, "gomeleon: %v\n", renameErr)
 		if err == nil {
 			return 1
 		}
@@ -275,18 +275,18 @@ func runGinkgo(args []string) int {
 			if _, statErr := os.Stat(reportPath); statErr == nil {
 				_, _ = fmt.Fprintln(os.Stdout)
 				if runErr := run(reportPath, os.Stdout); runErr != nil {
-					fmt.Fprintf(os.Stderr, "ginkgo-fd: %v\n", runErr)
+					fmt.Fprintf(os.Stderr, "gomeleon: %v\n", runErr)
 				}
 			}
 			return exitErr.ExitCode()
 		}
-		fmt.Fprintf(os.Stderr, "ginkgo-fd: %v\n", err)
+		fmt.Fprintf(os.Stderr, "gomeleon: %v\n", err)
 		return 1
 	}
 
 	_, _ = fmt.Fprintln(os.Stdout)
 	if err := run(reportPath, os.Stdout); err != nil {
-		fmt.Fprintf(os.Stderr, "ginkgo-fd: %v\n", err)
+		fmt.Fprintf(os.Stderr, "gomeleon: %v\n", err)
 		return 1
 	}
 	return 0
@@ -297,7 +297,7 @@ func main() {
 
 	if len(args) == 1 && strings.HasSuffix(args[0], ".json") {
 		if err := run(args[0], os.Stdout); err != nil {
-			fmt.Fprintf(os.Stderr, "ginkgo-fd: %v\n", err)
+			fmt.Fprintf(os.Stderr, "gomeleon: %v\n", err)
 			os.Exit(1)
 		}
 		return

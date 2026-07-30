@@ -1,4 +1,4 @@
-module github.com/woodie/ginkgo-fd
+module github.com/woodie/gomeleon
 
 go 1.26.3
 

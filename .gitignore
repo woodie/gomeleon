@@ -17,7 +17,7 @@ coverage.*
 *.coverprofile
 profile.cov
 report.json
-ginkgo-fd
+gomeleon
 
 # Dependency directories (remove the comment below to include it)
 # vendor/

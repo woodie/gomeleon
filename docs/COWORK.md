@@ -106,3 +106,25 @@ exact command; you run it and paste back the result.
   `log.Printf`/`log.Println` synchronously (SMTP relay logging) — a
   reasonable stand-in for "real" noisy test output when comparing wrapper vs.
   native `-fd` behavior.
+
+## Renamed to `gomeleon`
+
+The upstream `onsi/ginkgo` `add_fd_flag_v2` effort above was abandoned in
+favor of `gorderly`/`kotidy`/`xctidy` (plain `go test`/Kotest/Quick-Nimble
+output, no dependency on a separate CLI or a merged upstream PR). This
+wrapper still has a real, distinct purpose though: it's the only tool in
+the family that consumes real `ginkgo`'s own JSON report, for whichever
+suites in this account still use actual Ginkgo rather than `spec`+`expect`.
+Renamed away from `ginkgo-fd` since the name read as an upstream Ginkgo
+flag/fork rather than a standalone tool — `biloba` was considered and
+rejected (already a real, unrelated package at `github.com/onsi/biloba`,
+from the same `onsi` org that maintains Ginkgo itself). `module
+github.com/woodie/ginkgo-fd` → `github.com/woodie/gomeleon`, `GinkgoFd` →
+`Gomeleon` throughout code/tests, binary/temp-file names, and README —
+this repo's own historical entries above are left as-is since they're
+accurate to what the tool was called at the time.
+
+**Next up**: bring this wrapper to the same four-output-format surface
+`gorderly`/`xctidy` share (default glyph style, `-fd` RSpec documentation,
+`-fs` Mocha spec, `-fv` Vitest tree) — it currently only has the one
+`-fd`-style formatter from its original ginkgo-fd days.

@@ -1,13 +1,13 @@
-# ginkgo-fd
+# gomeleon
 
-[![go.mod version](https://img.shields.io/github/go-mod/go-version/woodie/ginkgo-fd)](https://github.com/woodie/ginkgo-fd)
-[![CI](https://github.com/woodie/ginkgo-fd/actions/workflows/go.yml/badge.svg)](https://github.com/woodie/ginkgo-fd/actions/workflows/go.yml)
-[![Release](https://img.shields.io/github/v/release/woodie/ginkgo-fd.svg)](https://github.com/woodie/ginkgo-fd/releases/latest)
-[![License](https://img.shields.io/github/license/woodie/ginkgo-fd.svg)](LICENSE)
+[![go.mod version](https://img.shields.io/github/go-mod/go-version/woodie/gomeleon)](https://github.com/woodie/gomeleon)
+[![CI](https://github.com/woodie/gomeleon/actions/workflows/go.yml/badge.svg)](https://github.com/woodie/gomeleon/actions/workflows/go.yml)
+[![Release](https://img.shields.io/github/v/release/woodie/gomeleon.svg)](https://github.com/woodie/gomeleon/releases/latest)
+[![License](https://img.shields.io/github/license/woodie/gomeleon.svg)](LICENSE)
 
 ![Example Screenshot](docs/example.png)
 
-The `ginko-fd` command uses [Ginkgo](https://github.com/onsi/ginkgo) under the hood to emulate the style of [RSpec](https://github.com/rspec/rspec) "format documentation" output.
+The `gomeleon` command uses [Ginkgo](https://github.com/onsi/ginkgo) under the hood to emulate the style of [RSpec](https://github.com/rspec/rspec) "format documentation" output.
 
 ## Installation
 
@@ -17,18 +17,18 @@ Install Ginkgo if you haven't already:
 go install github.com/onsi/ginkgo/v2/ginkgo@latest
 ```
 
-Then install ginkgo-fd:
+Then install gomeleon:
 
 ```
-go install github.com/woodie/ginkgo-fd@latest
+go install github.com/woodie/gomeleon@latest
 ```
 
 Or build locally:
 
 ```
 go mod tidy
-go build -o ginkgo-fd
-mv ginkgo-fd ~/go/bin/
+go build -o gomeleon
+mv gomeleon ~/go/bin/
 ```
 
 ## Usage
@@ -36,21 +36,21 @@ mv ginkgo-fd ~/go/bin/
 Run as a wrapper around `ginkgo`, passing any arguments through:
 
 ```
-ginkgo-fd
-ginkgo-fd ./...
-ginkgo-fd -v ./mypackage
+gomeleon
+gomeleon ./...
+gomeleon -v ./mypackage
 ```
 
 Or format an existing report file directly:
 
 ```
-ginkgo-fd report.json
+gomeleon report.json
 ```
 
 Sample output:
 
 ```
-GinkgoFd
+Gomeleon
   run
     with a passing report
       prints the suite name

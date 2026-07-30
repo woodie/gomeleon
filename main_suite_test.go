@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestGinkgoFd(t *testing.T) {
+func TestGomeleon(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "GinkgoFd Suite")
+	RunSpecs(t, "Gomeleon Suite")
 }

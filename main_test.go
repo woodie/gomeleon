@@ -63,7 +63,7 @@ const skippingReport = `[{
   ]
 }]`
 
-var _ = Describe("GinkgoFd", func() {
+var _ = Describe("Gomeleon", func() {
 	runReport := func(raw string) string {
 		path := writeTempReport(raw)
 		var buf strings.Builder
