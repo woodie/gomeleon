@@ -108,3 +108,22 @@ Finished in 0.0300 seconds
 Test Succeeded
 Tests Passed: 0 failed, 0 skipped, 3 total (0.0300 seconds)
 ```
+
+## Development
+
+```
+make build    # go build -o gomeleon
+make install  # builds, then moves the binary to ~/go/bin/
+make test     # verbose, dogfoods gomeleon on its own Ginkgo suite
+make lint     # golangci-lint
+make check    # terse: silent on success, full log on failure
+```
+
+`make test`/`make check` shell out to the real `ginkgo` CLI (not `go test`
+directly) since gomeleon's own purpose is reformatting that CLI's output --
+install it with `go install github.com/onsi/ginkgo/v2/ginkgo@latest` if it
+isn't already on your `PATH`.
+
+Cutting a release: tag directly, e.g. `git tag v1.1.0 && git push origin
+v1.1.0` -- gomeleon has no `--version`/`version.go` of its own to bump
+first, unlike `gorderly`'s.

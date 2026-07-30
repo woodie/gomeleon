@@ -1,4 +1,10 @@
-.PHONY: lint test check
+.PHONY: build install lint test check
+
+build:
+	go build -o gomeleon
+
+install: build
+	mv gomeleon ~/go/bin/
 
 # lint and test are always verbose. check is terse (silent on pass, full
 # log on any failure) -- matching every other lint/test/check split in
