@@ -28,6 +28,23 @@ const (
 	green  = "32"
 	yellow = "33"
 	cyan   = "36"
+	gray   = "90"
+)
+
+// Style picks the leaf-label rendering, matching gorderly's/xctidy's shared
+// four-format surface exactly: Classic is the default (no flag), Fd/Fs/Fv
+// are the RSpec/Mocha/Vitest looks. All four share one common footer below
+// (the xcbeautify-style "Test Succeeded"/"Tests Passed" block) -- there's no
+// per-style footer the way gorderly's -fv has its own Vitest-shaped one,
+// and Ginkgo's own "Ran X of Y Specs"/"SUCCESS!" footer is dropped entirely
+// rather than ported, in favor of that one shared block.
+type Style int
+
+const (
+	StyleClassic Style = iota
+	StyleFd
+	StyleFs
+	StyleFv
 )
 
 type SuiteReport struct {
@@ -67,7 +84,67 @@ func formatDuration(ns float64) string {
 	return formatSeconds(ns) + " seconds"
 }
 
-func run(reportPath string, out io.Writer) error {
+// colorizePass/colorizeFail/colorizePending/colorizeSkip each switch on style
+// internally, matching gorderly's colorizePass/colorizeFail/colorizeSkip --
+// Classic colors only the glyph and leaves the name mostly uncolored, Fs
+// grays the name out, Fv keeps its glyph minimal with no trailing detail,
+// and Fd (today's only style before this) is unchanged: the whole label as
+// one colored block. Ginkgo's Pending has no Vitest/gorderly equivalent, so
+// Fv folds it into the same dim treatment as Skipped.
+
+func colorizePass(style Style, name string, runTime float64) string {
+	switch style {
+	case StyleClassic:
+		return colorize(green, "✔") + " " + name + " (" + colorize(green, formatDuration(runTime)) + ")"
+	case StyleFs:
+		return colorize(green, "✔") + " " + colorize(gray, name)
+	case StyleFv:
+		return colorize(green, "✓") + " " + name
+	default: // StyleFd
+		return colorize(green, name)
+	}
+}
+
+func colorizeFail(style Style, name string, n int) string {
+	switch style {
+	case StyleClassic:
+		return colorize(red, "✗") + " " + colorize(red, fmt.Sprintf("%s (FAILED - %d)", name, n))
+	case StyleFs:
+		return colorize(red, "✗") + " " + colorize(gray, name) + " " + colorize(red, fmt.Sprintf("(FAILED - %d)", n))
+	case StyleFv:
+		return colorize(red, "×") + " " + name
+	default: // StyleFd
+		return colorize(red, fmt.Sprintf("%s (FAILED - %d)", name, n))
+	}
+}
+
+func colorizePending(style Style, name string) string {
+	switch style {
+	case StyleClassic:
+		return colorize(yellow, "○") + " " + colorize(yellow, fmt.Sprintf("%s (PENDING)", name))
+	case StyleFs:
+		return colorize(yellow, "○") + " " + colorize(gray, name) + " " + colorize(yellow, "(PENDING)")
+	case StyleFv:
+		return colorize(yellow, "↓") + " " + name
+	default: // StyleFd
+		return colorize(yellow, fmt.Sprintf("%s (PENDING)", name))
+	}
+}
+
+func colorizeSkip(style Style, name string) string {
+	switch style {
+	case StyleClassic:
+		return colorize(cyan, "○") + " " + colorize(cyan, fmt.Sprintf("%s (SKIPPED)", name))
+	case StyleFs:
+		return colorize(cyan, "○") + " " + colorize(gray, name) + " " + colorize(cyan, "(SKIPPED)")
+	case StyleFv:
+		return colorize(cyan, "↓") + " " + name
+	default: // StyleFd
+		return colorize(cyan, fmt.Sprintf("%s (SKIPPED)", name))
+	}
+}
+
+func run(reportPath string, out io.Writer, style Style) error {
 	data, err := os.ReadFile(reportPath)
 	if err != nil {
 		return fmt.Errorf("cannot read %s: %w", reportPath, err)
@@ -139,8 +216,7 @@ func run(reportPath string, out io.Writer) error {
 			switch spec.State {
 			case "failed", "panicked":
 				n := len(failures) + 1
-				label = fmt.Sprintf("%s (FAILED - %d)", label, n)
-				label = colorize(red, label)
+				label = colorizeFail(style, label, n)
 				failures = append(failures, failureEntry{
 					n:        n,
 					full:     append(append([]string{report.SuiteName}, hierarchy...), spec.LeafNodeText),
@@ -148,11 +224,11 @@ func run(reportPath string, out io.Writer) error {
 					location: fmt.Sprintf("%s:%d", spec.Failure.Location.FileName, spec.Failure.Location.LineNumber),
 				})
 			case "pending":
-				label = colorize(yellow, fmt.Sprintf("%s (PENDING)", label))
+				label = colorizePending(style, label)
 			case "skipped":
-				label = colorize(cyan, fmt.Sprintf("%s (SKIPPED)", label))
+				label = colorizeSkip(style, label)
 			default:
-				label = colorize(green, label)
+				label = colorizePass(style, label, spec.RunTime)
 			}
 
 			fprintf("%s%s\n", indent, label)
@@ -218,20 +294,6 @@ func run(reportPath string, out io.Writer) error {
 	)
 	fprintln(colorize(verdictColor, testsPassedLine))
 
-	// Mirrors Ginkgo's own "Ran X of Y Specs" footer verbatim; X excludes Pending/Skipped specs.
-	ranSpecs := totalSpecs - totalPending - totalSkipped
-	passedSpecs := ranSpecs - totalFailed
-	ginkgoVerdict := "SUCCESS!"
-	if totalFailed > 0 {
-		ginkgoVerdict = "FAIL!"
-	}
-	fprintln()
-	fprintf("Ran %d of %d Specs in %s\n", ranSpecs, totalSpecs, formatDuration(totalRunTime))
-	fprintln(colorize(verdictColor, fmt.Sprintf(
-		"%s -- %d Passed | %d Failed | %d Pending | %d Skipped",
-		ginkgoVerdict, passedSpecs, totalFailed, totalPending, totalSkipped,
-	)))
-
 	return writeErr
 }
 
@@ -246,7 +308,40 @@ func ginkgoReportPath() string {
 	return filepath.Join(os.TempDir(), "gomeleon-report.json")
 }
 
-func runGinkgo(args []string) int {
+// parseStyle pulls gomeleon's own format flags out of args, returning
+// whatever's left untouched -- everything else (test paths, -v, etc.) gets
+// forwarded straight through to the real ginkgo binary.
+func parseStyle(args []string) (Style, []string) {
+	style := StyleClassic
+	remaining := make([]string, 0, len(args))
+	for i := 0; i < len(args); i++ {
+		switch args[i] {
+		case "-fd":
+			style = StyleFd
+		case "-fs":
+			style = StyleFs
+		case "-fv":
+			style = StyleFv
+		case "--format":
+			if i+1 < len(args) {
+				switch args[i+1] {
+				case "documentation":
+					style = StyleFd
+				case "spec":
+					style = StyleFs
+				case "vitest":
+					style = StyleFv
+				}
+				i++
+			}
+		default:
+			remaining = append(remaining, args[i])
+		}
+	}
+	return style, remaining
+}
+
+func runGinkgo(args []string, style Style) int {
 	reportFile := "gomeleon-report.json"
 	reportPath := ginkgoReportPath()
 	defer func() {
@@ -274,7 +369,7 @@ func runGinkgo(args []string) int {
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			if _, statErr := os.Stat(reportPath); statErr == nil {
 				_, _ = fmt.Fprintln(os.Stdout)
-				if runErr := run(reportPath, os.Stdout); runErr != nil {
+				if runErr := run(reportPath, os.Stdout, style); runErr != nil {
 					fmt.Fprintf(os.Stderr, "gomeleon: %v\n", runErr)
 				}
 			}
@@ -285,7 +380,7 @@ func runGinkgo(args []string) int {
 	}
 
 	_, _ = fmt.Fprintln(os.Stdout)
-	if err := run(reportPath, os.Stdout); err != nil {
+	if err := run(reportPath, os.Stdout, style); err != nil {
 		fmt.Fprintf(os.Stderr, "gomeleon: %v\n", err)
 		return 1
 	}
@@ -293,15 +388,15 @@ func runGinkgo(args []string) int {
 }
 
 func main() {
-	args := os.Args[1:]
+	style, args := parseStyle(os.Args[1:])
 
 	if len(args) == 1 && strings.HasSuffix(args[0], ".json") {
-		if err := run(args[0], os.Stdout); err != nil {
+		if err := run(args[0], os.Stdout, style); err != nil {
 			fmt.Fprintf(os.Stderr, "gomeleon: %v\n", err)
 			os.Exit(1)
 		}
 		return
 	}
 
-	os.Exit(runGinkgo(args))
+	os.Exit(runGinkgo(args, style))
 }

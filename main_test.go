@@ -64,11 +64,14 @@ const skippingReport = `[{
 }]`
 
 var _ = Describe("Gomeleon", func() {
-	runReport := func(raw string) string {
+	runReportStyle := func(raw string, style Style) string {
 		path := writeTempReport(raw)
 		var buf strings.Builder
-		Expect(run(path, &buf)).To(Succeed())
+		Expect(run(path, &buf, style)).To(Succeed())
 		return buf.String()
+	}
+	runReport := func(raw string) string {
+		return runReportStyle(raw, StyleClassic)
 	}
 
 	Describe("run", func() {
@@ -101,11 +104,6 @@ var _ = Describe("Gomeleon", func() {
 				Expect(output).To(ContainSubstring("Test Succeeded"))
 				Expect(output).To(ContainSubstring("Tests Passed: 0 failed, 0 skipped, 3 total (0.0150 seconds)"))
 			})
-
-			It("appends Ginkgo's own 'Ran X of Y Specs' / 'SUCCESS!' footer", func() {
-				Expect(output).To(ContainSubstring("Ran 3 of 3 Specs in 0.0150 seconds"))
-				Expect(output).To(ContainSubstring("SUCCESS! -- 3 Passed | 0 Failed | 0 Pending | 0 Skipped"))
-			})
 		})
 
 		Context("with a failing report", func() {
@@ -133,11 +131,6 @@ var _ = Describe("Gomeleon", func() {
 				Expect(output).To(ContainSubstring("Test Failed"))
 				Expect(output).To(ContainSubstring("Tests Passed: 1 failed, 0 skipped, 1 total (0.0150 seconds)"))
 			})
-
-			It("switches the Ginkgo-style footer to 'FAIL!' and counts the failure", func() {
-				Expect(output).To(ContainSubstring("Ran 1 of 1 Specs in 0.0150 seconds"))
-				Expect(output).To(ContainSubstring("FAIL! -- 0 Passed | 1 Failed | 0 Pending | 0 Skipped"))
-			})
 		})
 
 		Context("with a skipping report", func() {
@@ -155,17 +148,12 @@ var _ = Describe("Gomeleon", func() {
 				Expect(output).To(ContainSubstring("Test Succeeded"))
 				Expect(output).To(ContainSubstring("Tests Passed: 0 failed, 1 skipped, 1 total (0.0150 seconds)"))
 			})
-
-			It("excludes the skipped spec from 'Ran X of Y' in the Ginkgo-style footer", func() {
-				Expect(output).To(ContainSubstring("Ran 0 of 1 Specs in 0.0150 seconds"))
-				Expect(output).To(ContainSubstring("SUCCESS! -- 0 Passed | 0 Failed | 0 Pending | 1 Skipped"))
-			})
 		})
 
 		Context("when the report file is missing", func() {
 			It("returns an error", func() {
 				var buf strings.Builder
-				Expect(run("/nonexistent/report.json", &buf)).To(HaveOccurred())
+				Expect(run("/nonexistent/report.json", &buf, StyleClassic)).To(HaveOccurred())
 			})
 		})
 	})
@@ -215,7 +203,7 @@ var _ = Describe("Gomeleon", func() {
 			It("formats the report file directly", func() {
 				path := writeTempReport(passingReport)
 				var buf strings.Builder
-				Expect(run(path, &buf)).To(Succeed())
+				Expect(run(path, &buf, StyleClassic)).To(Succeed())
 				Expect(buf.String()).To(ContainSubstring("Something"))
 			})
 		})
@@ -223,6 +211,113 @@ var _ = Describe("Gomeleon", func() {
 		Context("when runGinkgo writes a report", func() {
 			It("uses a path outside the project directory", func() {
 				Expect(ginkgoReportPath()).To(HavePrefix(os.TempDir()))
+			})
+		})
+	})
+
+	Describe("parseStyle", func() {
+		It("defaults to StyleClassic with no flags", func() {
+			style, remaining := parseStyle([]string{"./..."})
+			Expect(style).To(Equal(StyleClassic))
+			Expect(remaining).To(Equal([]string{"./..."}))
+		})
+
+		It("recognizes -fd", func() {
+			style, remaining := parseStyle([]string{"-fd", "./...", "-v"})
+			Expect(style).To(Equal(StyleFd))
+			Expect(remaining).To(Equal([]string{"./...", "-v"}))
+		})
+
+		It("recognizes -fs", func() {
+			style, _ := parseStyle([]string{"-fs"})
+			Expect(style).To(Equal(StyleFs))
+		})
+
+		It("recognizes -fv", func() {
+			style, _ := parseStyle([]string{"-fv"})
+			Expect(style).To(Equal(StyleFv))
+		})
+
+		It("recognizes --format documentation/spec/vitest", func() {
+			style, remaining := parseStyle([]string{"--format", "spec", "./..."})
+			Expect(style).To(Equal(StyleFs))
+			Expect(remaining).To(Equal([]string{"./..."}))
+
+			style, _ = parseStyle([]string{"--format", "documentation"})
+			Expect(style).To(Equal(StyleFd))
+
+			style, _ = parseStyle([]string{"--format", "vitest"})
+			Expect(style).To(Equal(StyleFv))
+		})
+
+		It("leaves unrelated args untouched", func() {
+			_, remaining := parseStyle([]string{"-v", "--race", "./..."})
+			Expect(remaining).To(Equal([]string{"-v", "--race", "./..."}))
+		})
+	})
+
+	Describe("style-specific rendering", func() {
+		BeforeEach(func() { isTTY = false })
+
+		Context("-fd (documentation, the pre-existing default look)", func() {
+			It("prints the plain label with no glyph", func() {
+				output := runReportStyle(passingReport, StyleFd)
+				Expect(output).To(ContainSubstring("creates the directory"))
+				Expect(output).NotTo(ContainSubstring("✔"))
+			})
+
+			It("annotates failures with (FAILED - n)", func() {
+				output := runReportStyle(failingReport, StyleFd)
+				Expect(output).To(ContainSubstring("creates the directory (FAILED - 1)"))
+			})
+		})
+
+		Context("-fs (RSpec-style)", func() {
+			It("prefixes passing specs with a checkmark", func() {
+				output := runReportStyle(passingReport, StyleFs)
+				Expect(output).To(ContainSubstring("✔"))
+				Expect(output).To(ContainSubstring("creates the directory"))
+			})
+
+			It("prefixes failing specs with an X and keeps the FAILED detail", func() {
+				output := runReportStyle(failingReport, StyleFs)
+				Expect(output).To(ContainSubstring("✗"))
+				Expect(output).To(ContainSubstring("(FAILED - 1)"))
+			})
+
+			It("prefixes skipped specs with a circle and SKIPPED detail", func() {
+				output := runReportStyle(skippingReport, StyleFs)
+				Expect(output).To(ContainSubstring("○"))
+				Expect(output).To(ContainSubstring("(SKIPPED)"))
+			})
+		})
+
+		Context("-fv (Vitest-style)", func() {
+			It("uses a minimal checkmark with no trailing detail", func() {
+				output := runReportStyle(passingReport, StyleFv)
+				Expect(output).To(ContainSubstring("✓ creates the directory"))
+				Expect(output).NotTo(ContainSubstring("(0.0150 seconds)"))
+			})
+
+			It("uses a minimal × for failures with no trailing detail", func() {
+				output := runReportStyle(failingReport, StyleFv)
+				Expect(output).To(ContainSubstring("× creates the directory"))
+				Expect(output).NotTo(ContainSubstring("(FAILED"))
+			})
+
+			It("uses a down-arrow for skipped specs", func() {
+				output := runReportStyle(skippingReport, StyleFv)
+				Expect(output).To(ContainSubstring("↓ creates the directory"))
+			})
+		})
+
+		Context("all four styles", func() {
+			It("still share the one xcbeautify-style footer", func() {
+				for _, style := range []Style{StyleClassic, StyleFd, StyleFs, StyleFv} {
+					output := runReportStyle(passingReport, style)
+					Expect(output).To(ContainSubstring("Test Succeeded"))
+					Expect(output).To(ContainSubstring("Tests Passed: 0 failed, 0 skipped, 3 total (0.0150 seconds)"))
+				}
 			})
 		})
 	})

@@ -124,7 +124,18 @@ github.com/woodie/ginkgo-fd` → `github.com/woodie/gomeleon`, `GinkgoFd` →
 this repo's own historical entries above are left as-is since they're
 accurate to what the tool was called at the time.
 
-**Next up**: bring this wrapper to the same four-output-format surface
-`gorderly`/`xctidy` share (default glyph style, `-fd` RSpec documentation,
-`-fs` Mocha spec, `-fv` Vitest tree) — it currently only has the one
-`-fd`-style formatter from its original ginkgo-fd days.
+**Update**: brought to the same four-format surface `gorderly`/`xctidy` share
+— Classic (default, no flag), `-fd` (RSpec documentation, the original
+ginkgo-fd look, now reachable via a flag instead of being the only option),
+`-fs` (RSpec spec — grayed-out label), `-fv` (Vitest — minimal glyph, no
+trailing detail). Ported gorderly's architecture directly: one `Style` enum
+plus per-state `colorizePass`/`colorizeFail`/`colorizePending`/`colorizeSkip`
+functions that switch on it, no separate `Formatter` interface. Per explicit
+instruction, there's a single shared footer across all four styles (the
+existing xcbeautify-style `Test Succeeded`/`Tests Passed` block) — Ginkgo's
+own native `Ran X of Y Specs`/`SUCCESS!` footer was dropped entirely rather
+than kept or ported, and there's no separate Vitest-specific footer the way
+gorderly's `-fv` has one. Also added a `Makefile` (`lint`/`test`/`check`),
+which this repo never had — `make check`/`make test`/`make link` all failed
+with "No rule to make target" before this, confirming the repo really had
+been abandoned mid-build-out.
