@@ -7,7 +7,12 @@
 
 ![Example Screenshot](docs/example.png)
 
-The `gomeleon` command uses [Ginkgo](https://github.com/onsi/ginkgo) under the hood to emulate the style of [RSpec](https://github.com/rspec/rspec) "format documentation" output.
+RSpec-style "documentation" output for teams on [Ginkgo](https://github.com/onsi/ginkgo)/[Gomega](https://github.com/onsi/gomega) --
+not just teams avoiding them. If a suite has migrated to (or started on)
+Ginkgo/Gomega, `gomeleon` wraps the real `ginkgo` CLI (or reads its JSON
+report directly) and reformats the result into [RSpec](https://github.com/rspec/rspec)'s
+nested "documentation" style, so the same readable, indented tree still
+shows up in the console either way.
 
 ## Installation
 
@@ -49,7 +54,7 @@ gomeleon report.json
 
 ### Formats
 
-`gomeleon` supports four leaf-line formats, matching the same `-fd`/`-fs`/`-fv` surface as `gorderly` and `xctidy`:
+`gomeleon` supports four leaf-line formats:
 
 | Flag | `--format` equivalent | Look |
 | --- | --- | --- |
@@ -126,4 +131,4 @@ isn't already on your `PATH`.
 
 Cutting a release: tag directly, e.g. `git tag v1.1.0 && git push origin
 v1.1.0` -- gomeleon has no `--version`/`version.go` of its own to bump
-first, unlike `gorderly`'s.
+first.
