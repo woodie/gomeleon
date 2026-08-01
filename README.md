@@ -7,11 +7,10 @@
 
 ![Example Screenshot](docs/example.png)
 
-RSpec/Mocha/Vitest-style output for teams on [Ginkgo](https://github.com/onsi/ginkgo)/[Gomega](https://github.com/onsi/gomega) --
-not just teams avoiding them. If a suite has migrated to (or started on)
-Ginkgo/Gomega, `gomeleon` wraps the real `ginkgo` CLI (or reads its JSON
-report directly) and reformats the result into a nested, readable tree,
-in any of four familiar conventions.
+RSpec/Mocha/Vitest-style output for Go that works with
+[Ginkgo](https://github.com/onsi/ginkgo)/[Gomega](https://github.com/onsi/gomega)
+by wrapping the real `ginkgo` CLI, or reading its JSON report directly.
+This is a great enhancement for teams already on Ginkgo/Gomega.
 
 ## Installation
 
