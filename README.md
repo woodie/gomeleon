@@ -44,6 +44,7 @@ Run as a wrapper around `ginkgo`, passing any arguments through:
 gomeleon
 gomeleon ./...
 gomeleon -v ./mypackage
+gomeleon -fd ./...
 ```
 
 Or format an existing report file directly:
@@ -52,17 +53,7 @@ Or format an existing report file directly:
 gomeleon report.json
 ```
 
-Flags: default (no flag) renders the classic style (glyph plus full detail);
-`-fd` renders RSpec's documentation format; `-fs` renders Mocha/Jest's spec
-format; `-fv` renders Vitest's tree format. `--format documentation`,
-`--format spec`, and `--format vitest` are the long forms:
-
-```
-gomeleon -fd ./...
-gomeleon -fs ./...
-gomeleon -fv ./...
-gomeleon --format spec ./...
-```
+Flags select the output style -- see [Output styles](#output-styles) below.
 
 ### Version
 
