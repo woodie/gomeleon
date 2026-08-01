@@ -388,6 +388,13 @@ func runGinkgo(args []string, style Style) int {
 }
 
 func main() {
+	// Checked before parseStyle/runGinkgo -- see wantsVersion's doc comment
+	// for why -v itself can't mean this here.
+	if wantsVersion(os.Args[1:]) {
+		fmt.Println(gomeleonVersion)
+		return
+	}
+
 	style, args := parseStyle(os.Args[1:])
 
 	if len(args) == 1 && strings.HasSuffix(args[0], ".json") {

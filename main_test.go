@@ -215,6 +215,24 @@ var _ = Describe("Gomeleon", func() {
 		})
 	})
 
+	Describe("wantsVersion", func() {
+		It("matches the long flag", func() {
+			Expect(wantsVersion([]string{"--version"})).To(BeTrue())
+		})
+
+		It("does not match the short flag", func() {
+			Expect(wantsVersion([]string{"-v"})).To(BeFalse())
+		})
+
+		It("matches regardless of position among other args", func() {
+			Expect(wantsVersion([]string{"./...", "--version"})).To(BeTrue())
+		})
+
+		It("does not match on an empty argument list", func() {
+			Expect(wantsVersion(nil)).To(BeFalse())
+		})
+	})
+
 	Describe("parseStyle", func() {
 		It("defaults to StyleClassic with no flags", func() {
 			style, remaining := parseStyle([]string{"./..."})
