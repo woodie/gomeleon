@@ -10,7 +10,9 @@
 RSpec/Mocha/Vitest-style output for Go that works with
 [Ginkgo](https://github.com/onsi/ginkgo)/[Gomega](https://github.com/onsi/gomega)
 by wrapping the real `ginkgo` CLI, or reading its JSON report directly.
-This is a great enhancement for teams already on Ginkgo/Gomega.
+This is a great enhancement for teams already on Ginkgo/Gomega. Get that
+same at-a-glance clarity without giving up Ginkgo's own assertions or
+your existing suite.
 
 ## Installation
 
