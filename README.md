@@ -64,6 +64,16 @@ gomeleon -fv ./...
 gomeleon --format spec ./...
 ```
 
+### Version
+
+```
+gomeleon --version
+```
+
+Prints the installed version and exits immediately, without waiting on
+stdin or running `ginkgo`. Long form only -- `-v` is already `ginkgo`'s
+own verbose flag, forwarded straight through.
+
 ## Output styles
 
 Four named styles, each matching a convention from a familiar test runner.
@@ -141,6 +151,9 @@ directly) since gomeleon's own purpose is reformatting that CLI's output --
 install it with `go install github.com/onsi/ginkgo/v2/ginkgo@latest` if it
 isn't already on your `PATH`.
 
-Cutting a release: tag directly, e.g. `git tag v1.1.0 && git push origin
-v1.1.0` -- gomeleon has no `--version`/`version.go` of its own to bump
-first.
+Cutting a release: bump `gomeleonVersion` in `version.go` by hand before
+tagging, matching `gorderly`'s own release process -- `gomeleon`'s primary
+install path is `go install github.com/woodie/gomeleon@latest`, a
+module-proxy fetch with no `.git` metadata to describe, so the version
+string has to already be correct in the committed source at the tagged
+commit.
