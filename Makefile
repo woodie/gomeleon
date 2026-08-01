@@ -13,11 +13,13 @@ install: build
 lint:
 	golangci-lint run
 
-# Verbose on purpose -- Ginkgo's own -v output, already RSpec-documentation-
-# style by nature (this repo's own reason for existing is reformatting this
-# exact output for consumers who only have plain `go test`, not Ginkgo).
+# Runs through the gomeleon binary itself, not raw ginkgo -- this used to
+# shell out to `ginkgo -v ./...` directly, which never exercised gomeleon's
+# own formatting at all. -fs (Mocha's spec format) so this matches kotidy's
+# `make dogfood` output -- all four repos in the family screenshot the same
+# style for their READMEs.
 test:
-	ginkgo -v ./...
+	go run . -fs ./...
 
 # Terser than `test` on purpose: Ginkgo's default (non -v) run has no dot
 # mode of its own here -- this just suppresses output on success and dumps

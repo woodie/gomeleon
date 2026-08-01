@@ -7,12 +7,11 @@
 
 ![Example Screenshot](docs/example.png)
 
-RSpec-style "documentation" output for teams on [Ginkgo](https://github.com/onsi/ginkgo)/[Gomega](https://github.com/onsi/gomega) --
+RSpec/Mocha/Vitest-style output for teams on [Ginkgo](https://github.com/onsi/ginkgo)/[Gomega](https://github.com/onsi/gomega) --
 not just teams avoiding them. If a suite has migrated to (or started on)
 Ginkgo/Gomega, `gomeleon` wraps the real `ginkgo` CLI (or reads its JSON
-report directly) and reformats the result into [RSpec](https://github.com/rspec/rspec)'s
-nested "documentation" style, so the same readable, indented tree still
-shows up in the console either way.
+report directly) and reformats the result into a nested, readable tree,
+in any of four familiar conventions.
 
 ## Installation
 
@@ -52,16 +51,10 @@ Or format an existing report file directly:
 gomeleon report.json
 ```
 
-### Formats
-
-`gomeleon` supports four leaf-line formats:
-
-| Flag | `--format` equivalent | Look |
-| --- | --- | --- |
-| _(none)_ | | Classic — glyph plus full detail (the original, default look) |
-| `-fd` | `--format documentation` | Plain colored label, no glyph (RSpec's "documentation" format) |
-| `-fs` | `--format spec` | Glyph plus grayed-out label (RSpec's "spec" format) |
-| `-fv` | `--format vitest` | Minimal glyph, no trailing detail (Vitest's look) |
+Flags: default (no flag) renders the classic style (glyph plus full detail);
+`-fd` renders RSpec's documentation format; `-fs` renders Mocha/Jest's spec
+format; `-fv` renders Vitest's tree format. `--format documentation`,
+`--format spec`, and `--format vitest` are the long forms:
 
 ```
 gomeleon -fd ./...
@@ -70,7 +63,18 @@ gomeleon -fv ./...
 gomeleon --format spec ./...
 ```
 
-All four formats share one footer (the xcbeautify-style `Test Succeeded`/`Tests Passed` block).
+## Output styles
+
+Four named styles, each matching a convention from a familiar test runner.
+All four share one footer (the xcbeautify-style `Test Succeeded`/`Tests
+Passed` block).
+
+| Flag | Convention | Look |
+|---|---|---|
+|   | Our base formatter | Glyph + full detail, failures add `(FAILED - N)` |
+| -fd | RSpec's doc format | Plain colored label, no glyph |
+| -fs | Mocha's spec format | Glyph + grayed-out label |
+| -fv | Vitest's own tree | Minimal glyph, no trailing detail |
 
 Sample leaf lines for a passing, a failing, and a skipped spec, across all four formats:
 
@@ -114,12 +118,19 @@ Test Succeeded
 Tests Passed: 0 failed, 0 skipped, 3 total (0.0300 seconds)
 ```
 
+## Things to know
+
+`gomeleon` is strictly a formatter over `ginkgo`'s own output, not a
+testing framework, so it doesn't prescribe how to structure specs. For how
+to write Ginkgo/Gomega tests, see
+[Ginkgo's own docs](https://onsi.github.io/ginkgo/).
+
 ## Development
 
 ```
 make build    # go build -o gomeleon
 make install  # builds, then moves the binary to ~/go/bin/
-make test     # verbose, dogfoods gomeleon on its own Ginkgo suite
+make test     # verbose, dogfoods gomeleon on its own Ginkgo suite in -fs style
 make lint     # golangci-lint
 make check    # terse: silent on success, full log on failure
 ```
