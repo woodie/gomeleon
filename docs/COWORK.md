@@ -139,3 +139,17 @@ gorderly's `-fv` has one. Also added a `Makefile` (`lint`/`test`/`check`),
 which this repo never had — `make check`/`make test`/`make link` all failed
 with "No rule to make target" before this, confirming the repo really had
 been abandoned mid-build-out.
+
+## `-fv` brought to parity with the rest of the family
+
+`colorizePass`'s `StyleFv` case used to print only the glyph and name, no
+duration at all — the one style in this repo that didn't match
+`gorderly`/`xctidy`/`kotidy`/`rutidy`'s two-toned number+unit split.
+`colorizeFail` had the same gap. Both now compute `formatVitestDurationParts`
+(mirroring `gorderly`'s function of the same name) and render it the same
+way the siblings do. The unit's color is `#b9e4b4`, not ANSI-16 bright green
+(`92`, closer to `#2ee721`) — a real `vitest run` color-picker readout showed
+the actual shade, so `vitestUnitGreen` is a 24-bit true-color escape
+(`38;2;185;228;180`) since no ANSI-16 entry is close. See `gorderly`'s
+`docs/COWORK.md` for the full note; the same color fix landed in all five
+repos in one session.
