@@ -311,16 +311,16 @@ var _ = Describe("Gomeleon", func() {
 		})
 
 		Context("-fv (Vitest-style)", func() {
-			It("uses a minimal checkmark with no trailing detail", func() {
+			It("uses a checkmark plus the millisecond duration, no FAILED-style detail", func() {
 				output := runReportStyle(passingReport, StyleFv)
 				// Check the leaf line itself, not the whole output -- the
 				// shared footer legitimately contains "(... seconds)" too.
-				Expect(output).To(ContainSubstring("✓ creates the directory\n"))
+				Expect(output).To(ContainSubstring("✓ creates the directory 15ms\n"))
 			})
 
-			It("uses a minimal × for failures with no trailing detail", func() {
+			It("uses an × plus the millisecond duration for failures, no FAILED marker", func() {
 				output := runReportStyle(failingReport, StyleFv)
-				Expect(output).To(ContainSubstring("× creates the directory"))
+				Expect(output).To(ContainSubstring("× creates the directory 15ms"))
 				Expect(output).NotTo(ContainSubstring("(FAILED"))
 			})
 
