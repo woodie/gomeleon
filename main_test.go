@@ -315,12 +315,15 @@ var _ = Describe("Gomeleon", func() {
 				output := runReportStyle(passingReport, StyleFv)
 				// Check the leaf line itself, not the whole output -- the
 				// shared footer legitimately contains "(... seconds)" too.
-				Expect(output).To(ContainSubstring("✓ creates the directory 15ms\n"))
+				// The fixture's SpecReports don't set their own RunTime (only
+				// the suite-level total is 15ms), so each leaf's own duration
+				// is 0ms here.
+				Expect(output).To(ContainSubstring("✓ creates the directory 0ms\n"))
 			})
 
 			It("uses an × plus the millisecond duration for failures, no FAILED marker", func() {
 				output := runReportStyle(failingReport, StyleFv)
-				Expect(output).To(ContainSubstring("× creates the directory 15ms"))
+				Expect(output).To(ContainSubstring("× creates the directory 0ms"))
 				Expect(output).NotTo(ContainSubstring("(FAILED"))
 			})
 
