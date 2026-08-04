@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -29,6 +30,8 @@ const (
 	yellow = "33"
 	cyan   = "36"
 	gray   = "90"
+	// vitestUnitGreen: real Vitest's own unit-suffix color (#b9e4b4); no ANSI-16 entry matches it.
+	vitestUnitGreen = "38;2;185;228;180"
 )
 
 // Style picks the leaf-label rendering, matching gorderly's/xctidy's shared
@@ -84,6 +87,23 @@ func formatDuration(ns float64) string {
 	return formatSeconds(ns) + " seconds"
 }
 
+// formatVitestDurationParts mirrors gorderly's formatVitestDurationParts:
+// whole milliseconds under 1000ms, seconds to two decimals at or above --
+// split into number and unit so colorizePass (-fv) can shade them two
+// different greens the way Vitest itself does.
+func formatVitestDurationParts(ns float64) (number, unit string) {
+	ms := ns / float64(time.Millisecond)
+	if ms > 1000 {
+		return fmt.Sprintf("%.2f", ms/1000), "s"
+	}
+	return fmt.Sprintf("%.0f", math.Round(ms)), "ms"
+}
+
+func formatVitestDuration(ns float64) string {
+	number, unit := formatVitestDurationParts(ns)
+	return number + unit
+}
+
 // colorizePass/colorizeFail/colorizePending/colorizeSkip each switch on style
 // internally, matching gorderly's colorizePass/colorizeFail/colorizeSkip --
 // Classic colors only the glyph and leaves the name mostly uncolored, Fs
@@ -99,20 +119,21 @@ func colorizePass(style Style, name string, runTime float64) string {
 	case StyleFs:
 		return colorize(green, "✔") + " " + colorize(gray, name)
 	case StyleFv:
-		return colorize(green, "✓") + " " + name
+		num, unit := formatVitestDurationParts(runTime)
+		return colorize(green, "✓") + " " + name + " " + colorize(green, num) + colorize(vitestUnitGreen, unit)
 	default: // StyleFd
 		return colorize(green, name)
 	}
 }
 
-func colorizeFail(style Style, name string, n int) string {
+func colorizeFail(style Style, name string, n int, runTime float64) string {
 	switch style {
 	case StyleClassic:
 		return colorize(red, "✗") + " " + colorize(red, fmt.Sprintf("%s (FAILED - %d)", name, n))
 	case StyleFs:
 		return colorize(red, "✗") + " " + colorize(gray, name) + " " + colorize(red, fmt.Sprintf("(FAILED - %d)", n))
 	case StyleFv:
-		return colorize(red, "×") + " " + name
+		return colorize(red, fmt.Sprintf("× %s %s", name, formatVitestDuration(runTime)))
 	default: // StyleFd
 		return colorize(red, fmt.Sprintf("%s (FAILED - %d)", name, n))
 	}
@@ -216,7 +237,7 @@ func run(reportPath string, out io.Writer, style Style) error {
 			switch spec.State {
 			case "failed", "panicked":
 				n := len(failures) + 1
-				label = colorizeFail(style, label, n)
+				label = colorizeFail(style, label, n, spec.RunTime)
 				failures = append(failures, failureEntry{
 					n:        n,
 					full:     append(append([]string{report.SuiteName}, hierarchy...), spec.LeafNodeText),
