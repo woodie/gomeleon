@@ -152,4 +152,5 @@ way the siblings do. The unit's color is `#b9e4b4`, not ANSI-16 bright green
 the actual shade, so `vitestUnitGreen` is a 24-bit true-color escape
 (`38;2;185;228;180`) since no ANSI-16 entry is close. See `gorderly`'s
 `docs/COWORK.md` for the full note; the same color fix landed in all five
-repos in one session.
+repos in one session. Tagged `v1.2.0` (minor bump, not patch -- this repo
+gained real new output, not just a recolored existing one) and pushed.
